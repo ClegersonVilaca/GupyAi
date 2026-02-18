@@ -1,0 +1,5 @@
+{
+  "name": "GupyAI: AI Resume Optimizer",
+  "description": "An AI-powered SaaS application that analyzes and optimizes your resume to increase compatibility with applicant tracking systems like Gupy, helping you land your dream job.",
+  "requestFramePermissions": []
+}
