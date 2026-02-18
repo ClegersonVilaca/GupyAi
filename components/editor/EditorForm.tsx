@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { ChevronUp, ChevronDown, User, FileText, Briefcase, GraduationCap, PlusCircle, Bot, X } from 'lucide-react';
-import type { ResumeData } from '../../pages/EditorPage';
+import type { ResumeData, Experience, Education } from '../../pages/EditorPage';
 
 interface AccordionSectionProps {
     title: string;

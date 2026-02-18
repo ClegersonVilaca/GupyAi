@@ -15,35 +15,15 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ data }) => {
         navigate('/editor');
     };
 
-    // Use provided data or fallback to defaults
-    const score = data?.score ?? 78;
-    const hardSkills = data?.hardSkills ?? 8;
-    const softSkills = data?.softSkills ?? 5;
-    const keywordsMatch = data?.keywordsMatch ?? "65%";
-    const formattingScore = data?.formattingScore ?? 100;
-    const missingKeywords = data?.missingKeywords ?? [
-        { title: 'Gestão Ágil / Scrum', sub: 'Citado 4x na descrição da vaga' },
-        { title: 'SQL Avançado', sub: 'Essencial para a função' },
-        { title: 'Power BI', sub: 'Preferencial' }
-    ];
-    const strengths = data?.strengths ?? ['Liderança', 'Python', 'Inglês Fluente', 'Gestão de Projetos', 'Comunicação'];
-    const suggestions = data?.suggestions ?? [
-        {
-            icon: <FilePenLine size={20} />,
-            title: 'Quantifique seus resultados',
-            desc: 'Mude para algo como "Liderou equipe de 10 pessoas entregando projetos com 15% de economia" para aumentar o score.'
-        },
-        {
-            icon: <FilePenLine size={20} />,
-            title: 'Incorpore "Gestão Ágil"',
-            desc: 'A palavra-chave "Gestão Ágil" é crítica. Adicione-a na primeira seção do seu currículo.'
-        },
-        {
-            icon: <Languages size={20} />,
-            title: 'Terminologia em Inglês',
-            desc: 'A vaga usa "Stakeholders" e "Budget". Seu currículo usa "Partes interessadas" e "Orçamento". Considere ajustar.'
-        }
-    ];
+    // Use provided data
+    const score = data?.score ?? 0;
+    const hardSkills = data?.hardSkills ?? 0;
+    const softSkills = data?.softSkills ?? 0;
+    const keywordsMatch = data?.keywordsMatch ?? "0%";
+    const formattingScore = data?.formattingScore ?? 0;
+    const missingKeywords = data?.missingKeywords ?? [];
+    const strengths = data?.strengths ?? [];
+    const suggestions = data?.suggestions ?? [];
 
     const handleExportReport = () => {
         const report = `

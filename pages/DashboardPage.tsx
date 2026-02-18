@@ -7,7 +7,7 @@ import AnalysisResults from '../components/dashboard/AnalysisResults';
 import { supabase } from '../lib/supabaseClient';
 
 const DashboardPage: React.FC = () => {
-    const [fileName, setFileName] = useState<string | null>(null);
+    const [file, setFile] = useState<File | null>(null);
     const [isOptimizing, setIsOptimizing] = useState(false);
     const [showResults, setShowResults] = useState(false); // Start with false
     const [isPro, setIsPro] = useState(false);
@@ -31,17 +31,35 @@ const DashboardPage: React.FC = () => {
 
     const handleOptimize = async () => {
         const jobDesc = (document.getElementById('job-desc') as HTMLTextAreaElement)?.value;
-        if (!jobDesc || !fileName) {
+        if (!jobDesc || !file) {
             alert('Por favor, insira a descrição da vaga e carregue seu currículo.');
             return;
         }
 
         setIsOptimizing(true);
         try {
+            // Extração de texto do PDF
+            const pdfjs = await import('pdfjs-dist');
+            // @ts-ignore - pdf.worker.min.js is usually served from CDN or static path
+            pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
+
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
+            let resumeText = '';
+
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const textContent = await page.getTextContent();
+                const pageText = textContent.items
+                    .map((item: any) => item.str)
+                    .join(' ');
+                resumeText += pageText + ' ';
+            }
+
             const { data, error } = await supabase.functions.invoke('optimize-resume', {
                 body: {
                     jobDescription: jobDesc,
-                    resumeText: "Texto extraído do PDF... (Simulação)"
+                    resumeText: resumeText.trim()
                 }
             });
 
@@ -93,8 +111,8 @@ const DashboardPage: React.FC = () => {
                         {/* LEFT COLUMN: INPUT ZONE */}
                         <div className="lg:col-span-12 xl:col-span-5 h-full overflow-hidden">
                             <JobInputSection
-                                fileName={fileName}
-                                setFileName={setFileName}
+                                file={file}
+                                setFile={setFile}
                                 onOptimize={handleOptimize}
                                 isOptimizing={isOptimizing}
                             />

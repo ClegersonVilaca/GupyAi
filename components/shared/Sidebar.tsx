@@ -43,32 +43,56 @@ const Sidebar: React.FC = () => {
                 </div>
 
                 <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-                    {menuItems.map((item, index) => (
-                        <Link
-                            key={index}
-                            to={item.path}
-                            className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all group ${isActive(item.path)
-                                ? 'bg-primary text-white shadow-md shadow-primary/20'
-                                : 'text-text-muted hover:bg-gray-100 hover:text-text-main'
-                                }`}
-                        >
-                            <span className={isActive(item.path) ? 'text-white' : 'text-text-muted group-hover:text-primary transition-colors'}>
-                                {item.icon}
-                            </span>
-                            {item.label}
-                        </Link>
-                    ))}
+                    {menuItems.map((item, index) => {
+                        const isLinkDisabled = ['/history', '/mentoria'].includes(item.path);
+                        const content = (
+                            <>
+                                <span className={isActive(item.path) ? 'text-white' : 'text-text-muted group-hover:text-primary transition-colors'}>
+                                    {item.icon}
+                                </span>
+                                {item.label}
+                                {isLinkDisabled && (
+                                    <span className="ml-auto text-[10px] font-bold bg-primary/10 text-primary px-1.5 py-0.5 rounded uppercase">Breve</span>
+                                )}
+                            </>
+                        );
+
+                        if (isLinkDisabled) {
+                            return (
+                                <button
+                                    key={index}
+                                    disabled
+                                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all text-text-muted cursor-not-allowed opacity-70`}
+                                >
+                                    {content}
+                                </button>
+                            );
+                        }
+
+                        return (
+                            <Link
+                                key={index}
+                                to={item.path}
+                                className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all group ${isActive(item.path)
+                                    ? 'bg-primary text-white shadow-md shadow-primary/20'
+                                    : 'text-text-muted hover:bg-gray-100 hover:text-text-main'
+                                    }`}
+                            >
+                                {content}
+                            </Link>
+                        );
+                    })}
                 </nav>
 
                 <div className="p-4 border-t border-border-light space-y-1">
-                    <Link
-                        to="/settings"
-                        className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all group ${isActive('/settings') ? 'bg-primary text-white' : 'text-text-muted hover:bg-gray-100 hover:text-text-main'
-                            }`}
+                    <button
+                        disabled
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all text-text-muted cursor-not-allowed opacity-70`}
                     >
-                        <Settings size={20} className={isActive('/settings') ? 'text-white' : 'group-hover:text-primary transition-colors'} />
+                        <Settings size={20} className="group-hover:text-primary transition-colors" />
                         Configurações
-                    </Link>
+                        <span className="ml-auto text-[10px] font-bold bg-primary/10 text-primary px-1.5 py-0.5 rounded uppercase">Breve</span>
+                    </button>
                     <button
                         onClick={handleLogout}
                         className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-text-muted hover:bg-red-50 hover:text-accent-danger transition-all group"

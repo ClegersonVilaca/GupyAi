@@ -1,15 +1,26 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { FileText, FileUp, Bot, X } from 'lucide-react';
 
 interface JobInputSectionProps {
-    fileName: string | null;
-    setFileName: (name: string | null) => void;
+    file: File | null;
+    setFile: (file: File | null) => void;
     onOptimize: () => void;
     isOptimizing: boolean;
 }
 
-const JobInputSection: React.FC<JobInputSectionProps> = ({ fileName, setFileName, onOptimize, isOptimizing }) => {
+const JobInputSection: React.FC<JobInputSectionProps> = ({ file, setFile, onOptimize, isOptimizing }) => {
+    const [jobDescription, setJobDescription] = useState('');
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const selectedFile = e.target.files?.[0];
+        if (selectedFile) {
+            setFile(selectedFile);
+        }
+    };
+
+    const removeFile = () => setFile(null);
+
     return (
         <div className="flex flex-col gap-6 h-full overflow-y-auto pr-2 pb-4 hide-scrollbar">
             <div>
@@ -27,6 +38,8 @@ const JobInputSection: React.FC<JobInputSectionProps> = ({ fileName, setFileName
                         className="w-full flex-1 rounded-xl border-border-light bg-gray-50 text-text-main focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none p-4 text-sm leading-relaxed placeholder:text-gray-400 transition-all"
                         id="job-desc"
                         placeholder="Cole a descrição completa da vaga aqui (requisitos, responsabilidades, etc)..."
+                        value={jobDescription}
+                        onChange={(e) => setJobDescription(e.target.value)}
                     ></textarea>
                 </div>
 
@@ -41,7 +54,7 @@ const JobInputSection: React.FC<JobInputSectionProps> = ({ fileName, setFileName
                             accept=".pdf"
                             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                             type="file"
-                            onChange={(e) => setFileName(e.target.files?.[0].name || null)}
+                            onChange={handleFileChange}
                         />
                         <div className="border-2 border-dashed border-primary/20 group-hover:border-primary/50 rounded-xl p-6 flex flex-col items-center justify-center text-center transition-all bg-gray-50 group-hover:bg-primary/5">
                             <div className="bg-primary/10 p-3 rounded-full mb-3 text-primary group-hover:scale-110 transition-transform">
@@ -52,24 +65,25 @@ const JobInputSection: React.FC<JobInputSectionProps> = ({ fileName, setFileName
                         </div>
                     </div>
 
-                    {fileName && (
-                        <div className="flex items-center justify-between p-3 bg-primary/5 border border-primary/20 rounded-xl mt-2 animate-in fade-in slide-in-from-top-2">
-                            <div className="flex items-center gap-3">
-                                <div className="bg-white p-2 rounded-lg text-primary shadow-sm">
-                                    <FileText size={18} />
+                    {file ? (
+                        <div className="flex items-center justify-between p-4 bg-primary/5 rounded-xl border border-primary/20 animate-in fade-in slide-in-from-top-2">
+                            <div className="flex items-center gap-3 overflow-hidden">
+                                <div className="size-10 bg-primary/10 rounded-lg flex items-center justify-center text-primary shrink-0">
+                                    <FileText size={20} />
                                 </div>
-                                <div className="text-sm">
-                                    <p className="font-medium text-text-main">{fileName}</p>
+                                <div className="overflow-hidden">
+                                    <p className="text-sm font-bold text-text-main truncate">{file.name}</p>
+                                    <p className="text-[10px] text-text-muted font-medium uppercase tracking-wider">{(file.size / 1024 / 1024).toFixed(2)} MB • PDF</p>
                                 </div>
                             </div>
                             <button
-                                className="text-text-muted hover:text-accent-danger p-1.5 rounded-lg hover:bg-white transition-colors"
-                                onClick={() => setFileName(null)}
+                                onClick={removeFile}
+                                className="p-2 text-text-muted hover:text-accent-danger transition-colors hover:bg-red-50 rounded-lg"
                             >
                                 <X size={18} />
                             </button>
                         </div>
-                    )}
+                    ) : null}
                 </div>
 
                 <button
