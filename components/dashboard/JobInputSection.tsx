@@ -1,25 +1,59 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { FileText, FileUp, Bot, X } from 'lucide-react';
 
 interface JobInputSectionProps {
     file: File | null;
     setFile: (file: File | null) => void;
+    jobDescription: string;
+    setJobDescription: (value: string) => void;
     onOptimize: () => void;
     isOptimizing: boolean;
 }
 
-const JobInputSection: React.FC<JobInputSectionProps> = ({ file, setFile, onOptimize, isOptimizing }) => {
-    const [jobDescription, setJobDescription] = useState('');
+const JobInputSection: React.FC<JobInputSectionProps> = ({
+    file,
+    setFile,
+    jobDescription,
+    setJobDescription,
+    onOptimize,
+    isOptimizing
+}) => {
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const selectedFile = e.target.files?.[0];
         if (selectedFile) {
+            if (selectedFile.size > 5 * 1024 * 1024) {
+                alert('O arquivo deve ter no máximo 5MB.');
+                return;
+            }
             setFile(selectedFile);
         }
     };
 
+    const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        const droppedFile = e.dataTransfer.files?.[0];
+        if (droppedFile) {
+            if (droppedFile.type !== 'application/pdf') {
+                alert('Apenas arquivos PDF são aceitos.');
+                return;
+            }
+            if (droppedFile.size > 5 * 1024 * 1024) {
+                alert('O arquivo deve ter no máximo 5MB.');
+                return;
+            }
+            setFile(droppedFile);
+        }
+    };
+
+    const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+        e.preventDefault();
+    };
+
     const removeFile = () => setFile(null);
+
+    const canSubmit = jobDescription.trim().length > 0 && file !== null;
 
     return (
         <div className="flex flex-col gap-6 h-full overflow-y-auto pr-2 pb-4 hide-scrollbar">
@@ -35,7 +69,7 @@ const JobInputSection: React.FC<JobInputSectionProps> = ({ file, setFile, onOpti
                         Descrição da Vaga
                     </label>
                     <textarea
-                        className="w-full flex-1 rounded-xl border-border-light bg-gray-50 text-text-main focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none p-4 text-sm leading-relaxed placeholder:text-gray-400 transition-all"
+                        className="w-full flex-1 rounded-xl border border-border-light bg-gray-50 text-text-main focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none p-4 text-sm leading-relaxed placeholder:text-gray-400 transition-all outline-none"
                         id="job-desc"
                         placeholder="Cole a descrição completa da vaga aqui (requisitos, responsabilidades, etc)..."
                         value={jobDescription}
@@ -49,7 +83,11 @@ const JobInputSection: React.FC<JobInputSectionProps> = ({ file, setFile, onOpti
                         Seu Currículo (PDF)
                     </label>
 
-                    <div className="relative group cursor-pointer">
+                    <div
+                        className="relative group cursor-pointer"
+                        onDrop={handleDrop}
+                        onDragOver={handleDragOver}
+                    >
                         <input
                             accept=".pdf"
                             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
@@ -88,8 +126,8 @@ const JobInputSection: React.FC<JobInputSectionProps> = ({ file, setFile, onOpti
 
                 <button
                     onClick={onOptimize}
-                    disabled={isOptimizing}
-                    className="w-full bg-primary hover:bg-primary-hover disabled:bg-gray-400 text-white font-bold py-4 px-6 rounded-xl shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all flex items-center justify-center gap-2 group mt-auto"
+                    disabled={isOptimizing || !canSubmit}
+                    className="w-full bg-primary hover:bg-primary-hover disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold py-4 px-6 rounded-xl shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 disabled:shadow-none transition-all flex items-center justify-center gap-2 group mt-auto"
                 >
                     {isOptimizing ? (
                         <>
