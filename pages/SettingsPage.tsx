@@ -3,10 +3,25 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Settings, Bell, Lock, Eye, Globe, Moon, Laptop, Sun } from 'lucide-react';
 import Sidebar from '../components/shared/Sidebar';
+import { useToast } from '../components/shared/Toast';
 
 const SettingsPage: React.FC = () => {
     const navigate = useNavigate();
-    const [theme, setTheme] = React.useState('system');
+    const { showToast } = useToast();
+    const [theme, setTheme] = React.useState(localStorage.getItem('theme') || 'light');
+
+    React.useEffect(() => {
+        const root = window.document.documentElement;
+        if (theme === 'dark') {
+            root.classList.add('dark');
+        } else if (theme === 'light') {
+            root.classList.remove('dark');
+        } else {
+            const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            root.classList.toggle('dark', systemDark);
+        }
+        localStorage.setItem('theme', theme);
+    }, [theme]);
 
     return (
         <div className="bg-background-light text-text-main h-screen flex overflow-hidden font-sans">
@@ -36,7 +51,8 @@ const SettingsPage: React.FC = () => {
                                 <div className="p-6 flex items-center justify-between">
                                     <div className="space-y-1">
                                         <p className="font-bold text-text-main flex items-center gap-2">
-                                            <Sun size={16} /> Aparência do Sistema
+                                            {theme === 'light' ? <Sun size={16} /> : theme === 'dark' ? <Moon size={16} /> : <Laptop size={16} />}
+                                            Aparência do Sistema
                                         </p>
                                         <p className="text-xs text-text-muted">Escolha como o GupyAI deve ser exibido para você.</p>
                                     </div>
@@ -70,7 +86,7 @@ const SettingsPage: React.FC = () => {
                                         <p className="text-xs text-text-muted">Deseja receber dicas de carreira por email?</p>
                                     </div>
                                     <label className="relative inline-flex items-center cursor-pointer">
-                                        <input type="checkbox" className="sr-only peer" defaultChecked />
+                                        <input type="checkbox" className="sr-only peer" defaultChecked onChange={() => showToast('Preferência de notificação atualizada.', 'info')} />
                                         <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
                                     </label>
                                 </div>
@@ -82,7 +98,10 @@ const SettingsPage: React.FC = () => {
                                         </p>
                                         <p className="text-xs text-text-muted">O idioma das análises e da interface.</p>
                                     </div>
-                                    <select className="bg-gray-50 border border-border-light rounded-xl px-4 py-2 text-xs font-bold outline-none focus:ring-2 focus:ring-primary/20">
+                                    <select
+                                        className="bg-gray-50 border border-border-light rounded-xl px-4 py-2 text-xs font-bold outline-none focus:ring-2 focus:ring-primary/20"
+                                        onChange={() => showToast('Idioma alterado com sucesso.', 'success')}
+                                    >
                                         <option>Português (Brasil)</option>
                                         <option>English</option>
                                         <option>Español</option>
@@ -108,7 +127,7 @@ const SettingsPage: React.FC = () => {
                                         <p className="text-xs text-text-muted">Permitir que recrutadores encontrem seu perfil otimizado.</p>
                                     </div>
                                     <label className="relative inline-flex items-center cursor-pointer">
-                                        <input type="checkbox" className="sr-only peer" />
+                                        <input type="checkbox" className="sr-only peer" onChange={(e) => showToast(e.target.checked ? 'Perfil agora está visível.' : 'Perfil agora está privado.', 'info')} />
                                         <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
                                     </label>
                                 </div>
