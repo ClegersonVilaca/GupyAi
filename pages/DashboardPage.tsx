@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Bell, User, Bot } from 'lucide-react';
+import { Bell, User, Bot, CheckCircle, Info, AlertTriangle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from '../components/shared/Sidebar';
 import JobInputSection from '../components/dashboard/JobInputSection';
@@ -37,6 +37,12 @@ const DashboardPage: React.FC = () => {
     const [user, setUser] = useState<any>(null);
     const [loadingStep, setLoadingStep] = useState(0);
     const [optimizeError, setOptimizeError] = useState('');
+    const [showNotifications, setShowNotifications] = useState(false);
+
+    const notifications = [
+        { id: 1, title: 'Bem-vindo ao GupyAI!', desc: 'Comece otimizando seu primeiro currículo.', type: 'info', time: 'Agora' },
+        { id: 2, title: 'Dica da IA', desc: 'Currículos com mais palavras-chave da vaga performam melhor.', type: 'success', time: '2h atrás' },
+    ];
 
     const handleUpgrade = async () => {
         setIsUpgrading(true);
@@ -49,7 +55,18 @@ const DashboardPage: React.FC = () => {
                 }
             });
 
-            if (error) throw error;
+            if (error) {
+                // Tenta extrair erro amigável
+                let msg = error.message;
+                try {
+                    if (error.context instanceof Response) {
+                        const body = await error.context.json();
+                        if (body.error) msg = body.error;
+                    }
+                } catch (e) { }
+                throw new Error(msg);
+            }
+
             if (data?.url) {
                 window.location.href = data.url;
             } else {
@@ -57,7 +74,7 @@ const DashboardPage: React.FC = () => {
             }
         } catch (error: any) {
             console.error('Error initiating upgrade:', error);
-            showToast(`Erro ao iniciar upgrade: ${error.message}`, 'error');
+            showToast(error.message || 'Erro ao iniciar upgrade', 'error');
         } finally {
             setIsUpgrading(false);
         }
@@ -116,7 +133,6 @@ const DashboardPage: React.FC = () => {
         setShowResults(false);
 
         try {
-            // Extração de texto do PDF
             const pdfjs = await import('pdfjs-dist');
             // @ts-ignore
             pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
@@ -135,88 +151,58 @@ const DashboardPage: React.FC = () => {
             }
 
             if (!resumeText.trim()) {
-                throw new Error('Não foi possível extrair texto do PDF. Certifique-se que o arquivo não está protegido.');
+                throw new Error('Não foi possível extrair texto do PDF.');
             }
 
             const { data, error } = await supabase.functions.invoke('optimize-resume', {
-                body: {
-                    jobDescription: jobDescription.trim(),
-                    resumeText: resumeText.trim()
-                }
+                body: { jobDescription: jobDescription.trim(), resumeText: resumeText.trim() }
             });
 
             if (error) {
-                console.error('Supabase Function Error:', error);
-                let errorMessage = error.message || 'Erro desconhecido ao chamar a função.';
-
-                // Tenta extrair mensagem de erro mais detalhada
+                let msg = error.message;
                 try {
-                    // Check if error is a FunctionsError and has a context that might be a Response
-                    if (error && typeof error === 'object' && 'context' in error) {
-                        const functionsError = error as FunctionsError;
-                        if (functionsError.context instanceof Response) {
-                            const response = functionsError.context;
-                            const body = await response.json();
-                            if (body?.error) {
-                                errorMessage = body.error;
-                            }
-                        }
+                    if (error.context instanceof Response) {
+                        const b = await error.context.json();
+                        if (b.error) msg = b.error;
                     }
-                } catch (e) {
-                    // ignora erro ao parsear
-                }
-
-                throw new Error(errorMessage);
+                } catch (e) { }
+                throw new Error(msg);
             }
 
-            if (!data) {
-                throw new Error('A função retornou uma resposta vazia.');
-            }
+            if (!data) throw new Error('A função retornou uma resposta vazia.');
 
-            // Transform parsedResume if needed to match Editor's ResumeData interface
             if (data.parsedResume) {
                 const transformedResume = {
                     ...data.parsedResume,
-                    // If AI returns 'experience', rename to 'experiences'
                     experiences: (data.parsedResume.experience || data.parsedResume.experiences || []).map((exp: any) => ({
                         company: exp.company || '',
                         position: exp.position || '',
                         duration: exp.period || exp.duration || '',
                         bulletPoints: Array.isArray(exp.description) ? exp.description : [exp.description || '']
                     })),
-                    // If AI returns 'education', rename to 'education' (already array usually)
                     education: (data.parsedResume.education || []).map((edu: any) => ({
                         institution: edu.institution || '',
                         degree: edu.degree || '',
                         year: edu.period || edu.year || ''
                     }))
                 };
-
                 data.parsedResume = transformedResume;
             }
 
             setAnalysisData(data);
             setShowResults(true);
 
-            // Sync parsedResume to Supabase
             if (data.parsedResume) {
                 const { data: { user: currentUser } } = await supabase.auth.getUser();
                 if (currentUser) {
-                    await supabase
-                        .from('resumes')
-                        .upsert({
-                            user_id: currentUser.id,
-                            resume_data: data.parsedResume
-                        }, { onConflict: 'user_id' });
-
-                    // Also save to localStorage for immediate use if needed
+                    await supabase.from('resumes').upsert({ user_id: currentUser.id, resume_data: data.parsedResume }, { onConflict: 'user_id' });
                     localStorage.setItem('last_parsed_resume', JSON.stringify(data.parsedResume));
                 }
             }
 
         } catch (error: any) {
             console.error('Error optimizing:', error);
-            setOptimizeError(error.message || 'Ocorreu um erro desconhecido. Tente novamente.');
+            setOptimizeError(error.message || 'Ocorreu um erro desconhecido.');
         } finally {
             setIsOptimizing(false);
         }
@@ -235,19 +221,49 @@ const DashboardPage: React.FC = () => {
                         <h2 className="text-primary text-lg font-bold tracking-tight">Dashboard</h2>
                     </div>
 
-                    <div className="flex items-center gap-4">
-                        <button className="p-2 text-text-muted hover:text-primary transition-colors rounded-full hover:bg-gray-100 relative">
+                    <div className="flex items-center gap-4 relative">
+                        <button
+                            onClick={() => setShowNotifications(!showNotifications)}
+                            className={`p-2 transition-colors rounded-full relative ${showNotifications ? 'bg-primary/10 text-primary' : 'text-text-muted hover:text-primary hover:bg-gray-100'}`}
+                        >
                             <Bell size={20} />
                             <span className="absolute top-2 right-2 size-2 bg-accent-danger rounded-full border-2 border-white"></span>
                         </button>
+
+                        {showNotifications && (
+                            <>
+                                <div className="fixed inset-0 z-40" onClick={() => setShowNotifications(false)}></div>
+                                <div className="absolute top-12 right-0 w-80 bg-white rounded-2xl border border-border-light shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                                    <div className="p-4 border-b border-gray-50 bg-gray-50/50 flex justify-between items-center">
+                                        <h3 className="font-bold text-sm">Notificações</h3>
+                                        <button className="text-[10px] font-bold text-primary hover:underline">Limpar todas</button>
+                                    </div>
+                                    <div className="max-h-96 overflow-y-auto divide-y divide-gray-50">
+                                        {notifications.map(n => (
+                                            <div key={n.id} className="p-4 hover:bg-gray-50 transition-colors flex gap-3">
+                                                <div className={`size-8 rounded-full flex items-center justify-center shrink-0 ${n.type === 'success' ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'}`}>
+                                                    {n.type === 'success' ? <CheckCircle size={14} /> : <Info size={14} />}
+                                                </div>
+                                                <div className="flex-1">
+                                                    <p className="text-xs font-bold text-text-main">{n.title}</p>
+                                                    <p className="text-[11px] text-text-muted mt-0.5 leading-relaxed">{n.desc}</p>
+                                                    <p className="text-[9px] text-gray-400 mt-2 font-medium">{n.time}</p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </>
+                        )}
+
                         <div className="h-8 w-px bg-border-light mx-1"></div>
                         <button
                             onClick={!isPro ? () => setIsUpgradeModalOpen(true) : undefined}
-                            className="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 rounded-xl transition-all group"
+                            className="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 rounded-xl transition-all group text-left"
                         >
-                            <div className="text-right hidden sm:block">
+                            <div className="hidden sm:block">
                                 <p className="text-sm font-bold text-text-main line-clamp-1">{userName}</p>
-                                <p className={`text-[10px] font-bold mt-0.5 uppercase tracking-wider ${isPro ? 'text-amber-600' : 'text-text-muted hover:text-primary transition-colors'}`}>
+                                <p className={`text-[10px] font-bold mt-0.5 uppercase tracking-wider ${isPro ? 'text-amber-600' : 'text-text-muted group-hover:text-primary transition-colors'}`}>
                                     {isPro ? 'Plano Pro' : 'Upgrade para Pro'}
                                 </p>
                             </div>
@@ -264,19 +280,13 @@ const DashboardPage: React.FC = () => {
 
                 <main className="flex-1 overflow-hidden p-4 md:p-6 lg:p-8">
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-full max-w-[1600px] mx-auto">
-                        {/* LEFT COLUMN: INPUT ZONE */}
                         <div className="lg:col-span-12 xl:col-span-5 h-full overflow-hidden">
                             <JobInputSection
-                                file={file}
-                                setFile={setFile}
-                                jobDescription={jobDescription}
-                                setJobDescription={setJobDescription}
-                                onOptimize={handleOptimize}
-                                isOptimizing={isOptimizing}
+                                file={file} setFile={setFile}
+                                jobDescription={jobDescription} setJobDescription={setJobDescription}
+                                onOptimize={handleOptimize} isOptimizing={isOptimizing}
                             />
                         </div>
-
-                        {/* RIGHT COLUMN: ANALYSIS ZONE */}
                         <div className={`lg:col-span-12 xl:col-span-7 h-full overflow-hidden transition-all duration-500 ${showResults || isOptimizing ? 'opacity-100 translate-y-0' : 'opacity-50 translate-y-4 pointer-events-none'}`}>
                             {isOptimizing ? (
                                 <div className="bg-white rounded-2xl border border-border-light h-full flex flex-col items-center justify-center text-center p-12">
@@ -288,7 +298,6 @@ const DashboardPage: React.FC = () => {
                                     </div>
                                     <h3 className="text-xl font-bold text-text-main mb-2">Otimizando currículo...</h3>
                                     <p className="text-sm text-text-muted animate-pulse">{loadingSteps[loadingStep]}</p>
-
                                     <div className="mt-8 w-full max-w-xs space-y-2">
                                         {loadingSteps.map((step, i) => (
                                             <div key={i} className="flex items-center gap-3">
@@ -302,7 +311,7 @@ const DashboardPage: React.FC = () => {
                                 <AnalysisResults data={analysisData!} />
                             ) : optimizeError ? (
                                 <div className="bg-white rounded-2xl border border-red-100 h-full flex flex-col items-center justify-center text-center p-12">
-                                    <div className="size-16 bg-red-50 rounded-full flex items-center justify-center text-red-400 mb-4 text-3xl">⚠️</div>
+                                    <AlertTriangle size={48} className="text-red-400 mb-4" />
                                     <h3 className="text-lg font-bold text-red-700 mb-2">Erro na Análise</h3>
                                     <p className="text-sm text-red-600 max-w-xs">{optimizeError}</p>
                                     <button onClick={() => setOptimizeError('')} className="mt-6 text-xs font-bold text-primary hover:underline">Tentar novamente</button>

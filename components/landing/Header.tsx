@@ -2,12 +2,26 @@
 import React from 'react';
 import { Bot } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
+import { supabase } from '../../lib/supabaseClient';
 
 const Header: React.FC = () => {
     const navigate = useNavigate();
 
-    const handleOptimizeClick = () => {
-        navigate('/dashboard');
+    const handleOptimizeClick = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+            navigate('/dashboard');
+        } else {
+            navigate('/login');
+        }
+    };
+
+    const handleLogout = async () => {
+        const { error } = await supabase.auth.signOut();
+        if (error) {
+            console.error('Error signing out:', error.message);
+        }
+        navigate('/');
     };
 
     return (

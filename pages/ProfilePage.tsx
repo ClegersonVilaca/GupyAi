@@ -60,7 +60,17 @@ const ProfilePage: React.FC = () => {
                 }
             });
 
-            if (error) throw error;
+            if (error) {
+                let msg = error.message;
+                try {
+                    if (error.context instanceof Response) {
+                        const body = await error.context.json();
+                        if (body.error) msg = body.error;
+                    }
+                } catch (e) { }
+                throw new Error(msg);
+            }
+
             if (data?.url) {
                 window.location.href = data.url;
             } else {
@@ -68,7 +78,7 @@ const ProfilePage: React.FC = () => {
             }
         } catch (error: any) {
             console.error('Error initiating upgrade:', error);
-            showToast(`Erro ao iniciar upgrade: ${error.message}`, 'error');
+            showToast(error.message || 'Erro ao iniciar upgrade', 'error');
         } finally {
             setIsUpgrading(false);
         }

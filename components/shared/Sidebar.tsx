@@ -22,7 +22,7 @@ const Sidebar: React.FC = () => {
         if (error) {
             console.error('Error signing out:', error.message);
         }
-        navigate('/login');
+        navigate('/');
     };
 
     return (
