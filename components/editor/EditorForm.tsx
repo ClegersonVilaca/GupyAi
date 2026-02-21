@@ -29,6 +29,23 @@ interface EditorFormProps {
 }
 
 const EditorForm: React.FC<EditorFormProps> = ({ resumeData, setResumeData, onApplySuggestion }) => {
+    const [pendingSuggestion, setPendingSuggestion] = React.useState<{ title: string; desc: string } | null>(null);
+
+    React.useEffect(() => {
+        const stored = localStorage.getItem('pending_suggestion');
+        if (stored) {
+            setPendingSuggestion(JSON.parse(stored));
+            // Não removemos ainda para permitir que o usuário veja a sugestão no editor
+        }
+    }, []);
+
+    const handleApplyAndClear = () => {
+        if (pendingSuggestion) {
+            onApplySuggestion(pendingSuggestion.desc, pendingSuggestion.type);
+            setPendingSuggestion(null);
+            localStorage.removeItem('pending_suggestion');
+        }
+    };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
@@ -110,20 +127,30 @@ const EditorForm: React.FC<EditorFormProps> = ({ resumeData, setResumeData, onAp
                 </AccordionSection>
                 <AccordionSection title="Resumo Profissional" icon={<FileText className="text-primary" />}>
                     <div className="p-0 space-y-4">
-                        <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 flex gap-3">
-                            <div className="text-primary mt-0.5"><Bot size={20} /></div>
-                            <div className="flex-1">
-                                <p className="text-sm text-blue-900 font-medium mb-1">Sugestão da IA</p>
-                                <p className="text-xs text-blue-800/80 mb-3 leading-relaxed">Detectamos palavras-chave de liderança na vaga alvo. Melhore seu resumo adicionando métricas de gestão.</p>
+                        {pendingSuggestion && (
+                            <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 flex gap-3 animate-in fade-in slide-in-from-top-2 duration-500">
+                                <div className="text-primary mt-0.5"><Bot size={20} /></div>
+                                <div className="flex-1">
+                                    <p className="text-sm text-blue-900 font-medium mb-1">{pendingSuggestion.title || "Sugestão da IA"}</p>
+                                    <p className="text-xs text-blue-800/80 mb-3 leading-relaxed">{pendingSuggestion.desc}</p>
+                                    <button
+                                        onClick={handleApplyAndClear}
+                                        className="bg-white text-primary text-xs font-semibold px-3 py-1.5 rounded border border-blue-200 hover:bg-blue-50 transition-colors shadow-sm"
+                                    >
+                                        Aplicar Sugestão
+                                    </button>
+                                </div>
                                 <button
-                                    onClick={() => onApplySuggestion("Liderança de squad de 12 desenvolvedores entregando projetos com 15% de economia e foco em KPIs de negócio.")}
-                                    className="bg-white text-primary text-xs font-semibold px-3 py-1.5 rounded border border-blue-200 hover:bg-blue-50 transition-colors shadow-sm"
+                                    onClick={() => {
+                                        setPendingSuggestion(null);
+                                        localStorage.removeItem('pending_suggestion');
+                                    }}
+                                    className="text-blue-400 hover:text-blue-600 h-fit"
                                 >
-                                    Aplicar Sugestão
+                                    <X size={18} />
                                 </button>
                             </div>
-                            <button className="text-blue-400 hover:text-blue-600 h-fit"><X size={18} /></button>
-                        </div>
+                        )}
                         <div><textarea className="w-full rounded-lg border-slate-300 focus:border-primary focus:ring-primary text-sm p-3 min-h-[120px] leading-relaxed" name="summary" value={resumeData.summary} onChange={handleChange} placeholder="Escreva um breve resumo..."></textarea></div>
                     </div>
                 </AccordionSection>

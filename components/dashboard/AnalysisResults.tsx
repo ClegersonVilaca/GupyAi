@@ -3,15 +3,23 @@ import React from 'react';
 import { BarChart2, AlertTriangle, BadgeCheck, Lightbulb, FilePenLine, Languages, ChevronRight, X, CheckCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import ScoreGauge from './ScoreGauge';
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
+
+import type { AnalysisData } from '../../pages/DashboardPage';
 
 interface AnalysisResultsProps {
-    data?: any;
+    data: AnalysisData;
 }
 
 const AnalysisResults: React.FC<AnalysisResultsProps> = ({ data }) => {
     const navigate = useNavigate();
+    const [isExporting, setIsExporting] = React.useState(false);
 
-    const handleSuggestionClick = () => {
+    const handleSuggestionClick = (suggestion: any) => {
+        if (suggestion.type === 'content') {
+            localStorage.setItem('pending_suggestion', JSON.stringify(suggestion));
+        }
         navigate('/editor');
     };
 
@@ -25,32 +33,49 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ data }) => {
     const strengths = data?.strengths ?? [];
     const suggestions = data?.suggestions ?? [];
 
-    const handleExportReport = () => {
-        const report = `
-            RELATÓRIO DE COMPATIBILIDADE GUPYAI
-            Score: ${score}%
-            Hard Skills: ${hardSkills}/10
-            Soft Skills: ${softSkills}/10
-            Match de Keywords: ${keywordsMatch}
-            Formatação: ${formattingScore}%
-            
-            PALAVRAS-CHAVE FALTANTES:
-            ${missingKeywords.map((k: any) => `- ${k.title}: ${k.sub}`).join('\n')}
-            
-            PONTOS FORTES:
-            ${strengths.join(', ')}
-        `;
-        const blob = new Blob([report], { type: 'text/plain' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'relatorio-gupyai.txt';
-        a.click();
+    const handleExportReport = async () => {
+        const element = document.getElementById('analysis-report');
+        if (!element) return;
+
+        setIsExporting(true);
+        try {
+            const canvas = await html2canvas(element, {
+                scale: 2,
+                useCORS: true,
+                logging: false,
+                windowWidth: element.scrollWidth,
+                windowHeight: element.scrollHeight
+            });
+
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const imgProps = pdf.getImageProperties(imgData);
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+            pdf.save(`Relatório_GupyAI_${new Date().getTime()}.pdf`);
+        } catch (error) {
+            console.error('Error exporting PDF:', error);
+            alert('Erro ao exportar PDF. Tente novamente.');
+        } finally {
+            setIsExporting(false);
+        }
     };
 
     return (
         <div className="bg-white rounded-2xl shadow-xl shadow-gray-200/50 border border-border-light h-full flex flex-col overflow-hidden">
-            <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+            <style>{`
+                @media print {
+                    aside, header, button, .shrink-0, hr, .print\\:hidden { display: none !important; }
+                    main { padding: 0 !important; margin: 0 !important; }
+                    .bg-background-light { background: white !important; }
+                    .shadow-xl, .shadow-sm { shadow: none !important; }
+                    .custom-scrollbar { overflow: visible !important; height: auto !important; }
+                    .bg-white { border: none !important; }
+                }
+            `}</style>
+            <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50 print:hidden">
                 <div>
                     <h3 className="text-lg font-bold text-text-main flex items-center gap-2">
                         <BarChart2 className="text-primary" size={20} />
@@ -60,41 +85,42 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ data }) => {
                 </div>
                 <button
                     onClick={handleExportReport}
-                    className="text-xs font-bold text-primary bg-primary/10 px-4 py-2 rounded-lg hover:bg-primary/20 transition-colors"
+                    disabled={isExporting}
+                    className="text-xs font-bold text-primary bg-primary/10 px-4 py-2 rounded-lg hover:bg-primary/20 transition-colors disabled:opacity-50"
                 >
-                    EXPORTAR RELATÓRIO
+                    {isExporting ? 'EXPORTANDO...' : 'EXPORTAR RELATÓRIO'}
                 </button>
             </div>
 
-            <div className="overflow-y-auto p-6 flex-1 space-y-8 custom-scrollbar">
+            <div id="analysis-report" className="overflow-y-auto p-6 flex-1 space-y-8 custom-scrollbar bg-white">
                 <div className="flex flex-col md:flex-row gap-8 items-center justify-center">
                     <ScoreGauge score={score} />
                     <div className="grid grid-cols-2 gap-4 w-full max-w-md">
                         <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 transition-hover hover:border-primary/20">
                             <div className="flex items-center gap-2 mb-1">
                                 <div className="size-2 rounded-full bg-accent-success"></div>
-                                <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Hard Skills</span>
+                                <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Competências Técnicas</span>
                             </div>
                             <p className="text-2xl font-black text-text-main">{hardSkills}/10</p>
                         </div>
                         <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 transition-hover hover:border-primary/20">
                             <div className="flex items-center gap-2 mb-1">
                                 <div className="size-2 rounded-full bg-accent-warning"></div>
-                                <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Soft Skills</span>
+                                <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Habilidades Interpessoais</span>
                             </div>
                             <p className="text-2xl font-black text-text-main">{softSkills}/10</p>
                         </div>
                         <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 transition-hover hover:border-primary/20">
                             <div className="flex items-center gap-2 mb-1">
                                 <div className="size-2 rounded-full bg-accent-danger"></div>
-                                <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Keywords</span>
+                                <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Palavras-chave</span>
                             </div>
                             <p className="text-2xl font-black text-text-main">{keywordsMatch}</p>
                         </div>
                         <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 transition-hover hover:border-primary/20">
                             <div className="flex items-center gap-2 mb-1">
                                 <div className="size-2 rounded-full bg-primary"></div>
-                                <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Formatação</span>
+                                <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Formatação ATS</span>
                             </div>
                             <p className="text-2xl font-black text-text-main">{formattingScore}%</p>
                         </div>
@@ -110,7 +136,7 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ data }) => {
                             Palavras-chave Faltantes
                         </h4>
                         <ul className="space-y-3">
-                            {missingKeywords.map((item: any, i: number) => (
+                            {missingKeywords.map((item, i) => (
                                 <li key={i} className="flex items-start gap-3 bg-white p-3.5 rounded-xl border border-red-100 shadow-sm transition-transform hover:scale-[1.02]">
                                     <X className="text-accent-danger mt-0.5 shrink-0" size={16} />
                                     <div>
@@ -143,10 +169,10 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ data }) => {
                         Sugestões de Melhoria da IA
                     </h4>
 
-                    {suggestions.map((sug: any, i: number) => (
+                    {suggestions.map((sug, i) => (
                         <div
                             key={i}
-                            onClick={handleSuggestionClick}
+                            onClick={() => handleSuggestionClick(sug)}
                             className="bg-white border border-border-light rounded-2xl p-5 shadow-sm hover:shadow-xl hover:border-primary/20 transition-all cursor-pointer group flex gap-4"
                         >
                             <div className="shrink-0">
@@ -165,7 +191,7 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ data }) => {
                     ))}
                 </div>
             </div>
-        </div>
+        </div >
     );
 };
 

@@ -11,9 +11,9 @@ interface ResumePreviewProps {
     setAtsMode: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-const ResumePreview: React.FC<ResumePreviewProps> = ({ resumeData, zoom, setZoom, atsMode, setAtsMode }) => {
+const ResumePreview = React.forwardRef<HTMLDivElement, ResumePreviewProps>(({ resumeData, zoom, setZoom, atsMode, setAtsMode }, ref) => {
     return (
-        <div className="hidden lg:flex flex-col w-[45%] bg-slate-100 h-full relative overflow-hidden print:w-full print:bg-white print:h-auto print:static">
+        <div className="hidden lg:flex flex-col w-[45%] bg-slate-100 h-full relative overflow-hidden print:bg-white print:w-full print:h-auto print:block">
             <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 flex bg-white/90 backdrop-blur-sm rounded-full shadow-md border border-slate-200 px-4 py-1.5 gap-4 items-center print:hidden">
                 <div className="flex items-center gap-2 border-r border-slate-200 pr-4">
                     <button onClick={() => setZoom(prev => Math.max(50, prev - 10))} className="text-slate-500 hover:text-primary p-1 rounded"><ZoomOut size={20} /></button>
@@ -32,6 +32,7 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({ resumeData, zoom, setZoom
             </div>
             <div className="flex-1 overflow-y-auto hide-scrollbar flex justify-center p-8 pb-20 print:p-0 print:overflow-visible">
                 <div
+                    ref={ref}
                     className={`bg-white shadow-paper mx-auto p-10 flex flex-col text-slate-800 transition-all origin-top print:shadow-none print:scale-100 print:w-full print:p-0`}
                     style={{
                         fontFamily: atsMode ? "'Arial', sans-serif" : "'Times New Roman', serif",
@@ -106,6 +107,6 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({ resumeData, zoom, setZoom
             <div className="absolute bottom-0 w-full h-12 bg-gradient-to-t from-slate-100 to-transparent pointer-events-none print:hidden"></div>
         </div>
     );
-};
+});
 
 export default ResumePreview;

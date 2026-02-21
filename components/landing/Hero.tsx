@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 
 const Hero: React.FC = () => {
     const navigate = useNavigate();
-    
+
     return (
         <section className="relative overflow-hidden bg-surface-light pt-16 pb-24 lg:pt-32 lg:pb-40">
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-blue-100/40 via-transparent to-transparent"></div>
@@ -16,7 +16,7 @@ const Hero: React.FC = () => {
                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent-success opacity-75"></span>
                             <span className="relative inline-flex rounded-full h-2 w-2 bg-accent-success"></span>
                         </span>
-                        Novo algoritmo 2024 atualizado
+                        Novo algoritmo 2026 atualizado
                     </div>
                     <h1 className="max-w-4xl text-5xl font-black tracking-tight text-gray-900 sm:text-6xl lg:text-7xl mb-6">
                         Vença o <span className="text-gradient">Robô da Gupy</span> e conquiste sua vaga

@@ -3,22 +3,39 @@ import React, { useState } from 'react';
 import { CheckCircle, XCircle } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 
+import { useNavigate } from 'react-router-dom';
+
 const Pricing: React.FC = () => {
     const [loading, setLoading] = useState(false);
+    const navigate = useNavigate();
 
     const handleSubscribe = async () => {
         setLoading(true);
         try {
-            const { data, error } = await supabase.functions.invoke('create-pix-charge');
+            const { data: { user } } = await supabase.auth.getUser();
+
+            if (!user) {
+                navigate('/login');
+                return;
+            }
+
+            const { data, error } = await supabase.functions.invoke('create-checkout-abacate', {
+                body: {
+                    user_email: user.email,
+                    user_name: user.user_metadata?.full_name || user.email?.split('@')[0]
+                }
+            });
+
             if (error) throw error;
 
-            // AbacatePay returns the billing url in data.data.url
-            if (data?.data?.url) {
-                window.location.href = data.data.url;
+            if (data?.url) {
+                window.location.href = data.url;
+            } else {
+                throw new Error('URL de checkout não recebida.');
             }
         } catch (error) {
             console.error('Error creating charge:', error);
-            alert('Erro ao gerar cobrança Pix. Tente novamente.');
+            alert('Erro ao gerar cobrança. Tente novamente ou faça login.');
         } finally {
             setLoading(false);
         }
@@ -48,7 +65,12 @@ const Pricing: React.FC = () => {
                             <li className="flex items-start gap-3"><XCircle className="text-gray-300 text-xl shrink-0" /><span className="text-gray-400">Sem reescrita automática</span></li>
                             <li className="flex items-start gap-3"><XCircle className="text-gray-300 text-xl shrink-0" /><span className="text-gray-400">Sem gerador de Carta de Apresentação</span></li>
                         </ul>
-                        <button className="w-full rounded-lg border-2 border-primary text-primary font-bold py-3 px-4 hover:bg-blue-50 transition-colors">Começar Grátis</button>
+                        <button
+                            onClick={() => navigate('/login')}
+                            className="w-full rounded-lg border-2 border-primary text-primary font-bold py-3 px-4 hover:bg-blue-50 transition-colors"
+                        >
+                            Começar Grátis
+                        </button>
                     </div>
                     {/* Pro Plan */}
                     <div className="bg-white rounded-2xl p-8 border-2 border-primary shadow-xl relative flex flex-col transform md:-translate-y-4">

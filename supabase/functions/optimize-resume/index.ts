@@ -34,7 +34,29 @@ Curriculo:
 ${resumeText}
 
 Retorne SOMENTE um objeto JSON valido, sem nenhum texto antes ou depois, sem markdown, sem blocos de codigo, apenas o JSON puro com esta estrutura exata:
-{"score":number,"hardSkills":number,"softSkills":number,"keywordsMatch":"string%","formattingScore":number,"missingKeywords":[{"title":"string","sub":"string"}],"strengths":["string"],"suggestions":[{"title":"string","desc":"string","type":"content"}]}
+{
+  "score": number,
+  "hardSkills": number,
+  "softSkills": number,
+  "keywordsMatch": "string%",
+  "formattingScore": number,
+  "missingKeywords": [{"title":"string","sub":"string"}],
+  "strengths": ["string"],
+  "suggestions": [{"title":"string","desc":"string","type":"content"}],
+  "parsedResume": {
+    "name": "string",
+    "email": "string",
+    "phone": "string",
+    "location": "string",
+    "linkedin": "string",
+    "website": "string",
+    "summary": "string",
+    "experience": [{"company":"string","position":"string","period":"string","location":"string","description":"string"}],
+    "education": [{"institution":"string","degree":"string","period":"string","description":"string"}],
+    "skills": "string[]",
+    "languages": [{"language":"string","level":"string"}]
+  }
+}
 
 Regras:
 - score: compatibilidade geral de 0 a 100
@@ -44,7 +66,8 @@ Regras:
 - formattingScore: qualidade da formatacao de 0 a 100
 - missingKeywords: lista de competencias tecnicas ausentes no curriculo mas presentes na vaga
 - strengths: lista de pontos fortes identificados no curriculo
-- suggestions: sugestoes de melhoria (type pode ser "content", "formatting" ou "language")`
+- suggestions: sugestoes de melhoria (type pode ser "content", "formatting" ou "language")
+- parsedResume: extraia os dados estruturados do texto do curriculo fornecido para preencher o editor automaticamente.`
 
         const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
