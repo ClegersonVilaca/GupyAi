@@ -1,50 +1,49 @@
 
 import React from 'react';
-import { Mail, Eye, Bot, ArrowRight, User } from 'lucide-react';
+import { Mail, Eye, Bot, ArrowRight, User, EyeOff } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
+import { useToast } from '../components/shared/Toast';
 
 const LoginPage: React.FC = () => {
     const navigate = useNavigate();
+    const { showToast } = useToast();
     const [loading, setLoading] = React.useState(false);
     const [email, setEmail] = React.useState('');
     const [password, setPassword] = React.useState('');
     const [name, setName] = React.useState('');
     const [showPassword, setShowPassword] = React.useState(false);
     const [isSignUp, setIsSignUp] = React.useState(false);
+    const [errorMessage, setErrorMessage] = React.useState('');
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
+        setErrorMessage('');
         try {
             if (isSignUp) {
                 const { error } = await supabase.auth.signUp({
                     email,
                     password,
                     options: {
-                        data: {
-                            full_name: name,
-                        }
+                        data: { full_name: name }
                     }
                 });
                 if (error) throw error;
-                alert('Conta criada com sucesso! Verifique seu email para confirmar o cadastro ou faça login.');
+                showToast('Conta criada! Verifique seu email para confirmar o cadastro.', 'success');
                 setIsSignUp(false);
             } else {
-                const { error } = await supabase.auth.signInWithPassword({
-                    email,
-                    password,
-                });
+                const { error } = await supabase.auth.signInWithPassword({ email, password });
                 if (error) {
                     if (error.message === 'Invalid login credentials') {
-                        throw new Error('Email ou senha incorretos. Você já tem uma conta? Se não, clique em Cadastre-se.');
+                        throw new Error('Email ou senha incorretos. Já tem uma conta? Se não, clique em Cadastre-se.');
                     }
                     throw error;
                 }
                 navigate('/dashboard');
             }
         } catch (error: any) {
-            alert(error.message);
+            setErrorMessage(error.message);
         } finally {
             setLoading(false);
         }
@@ -54,13 +53,11 @@ const LoginPage: React.FC = () => {
         try {
             const { error } = await supabase.auth.signInWithOAuth({
                 provider: 'google',
-                options: {
-                    redirectTo: window.location.origin + '/dashboard'
-                }
+                options: { redirectTo: window.location.origin + '/#/dashboard' }
             });
             if (error) throw error;
         } catch (error: any) {
-            alert(error.message);
+            setErrorMessage(error.message);
         }
     };
 
@@ -105,22 +102,26 @@ const LoginPage: React.FC = () => {
                                 </span>
                             </div>
                         </div>
+
+                        {/* Mensagem de erro interna */}
+                        {errorMessage && (
+                            <div className="mb-4 p-3 bg-red-50 border border-red-100 rounded-xl flex items-start gap-2">
+                                <span className="text-red-500 mt-0.5">⚠️</span>
+                                <p className="text-sm text-red-700 font-medium">{errorMessage}</p>
+                            </div>
+                        )}
+
                         <form onSubmit={handleSubmit} className="space-y-4">
                             {isSignUp && (
                                 <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-300">
                                     <label className="block text-sm font-medium text-text-main" htmlFor="name">Nome Completo</label>
                                     <div className="relative">
                                         <input
-                                            className="block w-full h-11 px-4 rounded-lg border-slate-300 bg-white placeholder:text-gray-400 focus:border-primary focus:ring-primary sm:text-sm transition-all"
-                                            id="name"
-                                            name="name"
-                                            placeholder="Seu nome"
-                                            required
-                                            type="text"
-                                            value={name}
-                                            onChange={(e) => setName(e.target.value)}
+                                            className="block w-full h-11 px-4 rounded-lg border border-slate-300 bg-white placeholder:text-gray-400 focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none sm:text-sm transition-all"
+                                            id="name" name="name" placeholder="Seu nome" required type="text"
+                                            value={name} onChange={(e) => setName(e.target.value)}
                                         />
-                                        <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-400"><User className="size-4.5" size={18} /></div>
+                                        <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-400"><User size={18} /></div>
                                     </div>
                                 </div>
                             )}
@@ -128,14 +129,9 @@ const LoginPage: React.FC = () => {
                                 <label className="block text-sm font-medium text-text-main" htmlFor="email">Email</label>
                                 <div className="relative">
                                     <input
-                                        className="block w-full h-11 px-4 rounded-lg border-slate-300 bg-white placeholder:text-gray-400 focus:border-primary focus:ring-primary sm:text-sm transition-all"
-                                        id="email"
-                                        name="email"
-                                        placeholder="seu@email.com"
-                                        required
-                                        type="email"
-                                        value={email}
-                                        onChange={(e) => setEmail(e.target.value)}
+                                        className="block w-full h-11 px-4 rounded-lg border border-slate-300 bg-white placeholder:text-gray-400 focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none sm:text-sm transition-all"
+                                        id="email" name="email" placeholder="seu@email.com" required type="email"
+                                        value={email} onChange={(e) => setEmail(e.target.value)}
                                     />
                                     <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-400"><Mail size={18} /></div>
                                 </div>
@@ -147,28 +143,22 @@ const LoginPage: React.FC = () => {
                                 </div>
                                 <div className="relative">
                                     <input
-                                        className="block w-full h-11 px-4 rounded-lg border-slate-300 bg-white placeholder:text-gray-400 focus:border-primary focus:ring-primary sm:text-sm transition-all"
-                                        id="password"
-                                        name="password"
-                                        placeholder="••••••••"
-                                        required
+                                        className="block w-full h-11 px-4 rounded-lg border border-slate-300 bg-white placeholder:text-gray-400 focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none sm:text-sm transition-all"
+                                        id="password" name="password" placeholder="••••••••" required
                                         type={showPassword ? "text" : "password"}
-                                        value={password}
-                                        onChange={(e) => setPassword(e.target.value)}
+                                        value={password} onChange={(e) => setPassword(e.target.value)}
                                     />
                                     <button
                                         className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
-                                        type="button"
-                                        onClick={() => setShowPassword(!showPassword)}
+                                        type="button" onClick={() => setShowPassword(!showPassword)}
                                     >
-                                        <Eye size={18} />
+                                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                     </button>
                                 </div>
                             </div>
                             <div className="pt-2">
                                 <button
-                                    type="submit"
-                                    disabled={loading}
+                                    type="submit" disabled={loading}
                                     className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary-hover text-white h-12 rounded-lg font-bold shadow-sm shadow-primary/30 transition-all active:scale-[0.98] focus:ring-4 focus:ring-primary/30 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     {loading ? (isSignUp ? 'Cadastrando...' : 'Entrando...') : (isSignUp ? 'Criar Conta' : 'Entrar')} <ArrowRight size={16} />
@@ -180,7 +170,7 @@ const LoginPage: React.FC = () => {
                                 {isSignUp ? 'Já tem uma conta?' : 'Não tem uma conta?'}
                             </span>
                             <button
-                                onClick={() => setIsSignUp(!isSignUp)}
+                                onClick={() => { setIsSignUp(!isSignUp); setErrorMessage(''); }}
                                 className="font-semibold text-primary hover:text-primary-hover ml-1"
                             >
                                 {isSignUp ? 'Faça Login' : 'Cadastre-se'}

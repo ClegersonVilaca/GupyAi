@@ -8,6 +8,7 @@ import Sidebar from '../components/shared/Sidebar';
 import EditorForm from '../components/editor/EditorForm';
 import ResumePreview from '../components/editor/ResumePreview';
 import { supabase } from '../lib/supabaseClient';
+import { useToast } from '../components/shared/Toast';
 
 export interface Experience {
     company: string;
@@ -36,10 +37,12 @@ export interface ResumeData {
 
 const EditorPage: React.FC = () => {
     const navigate = useNavigate();
+    const { showToast } = useToast();
     const [zoom, setZoom] = React.useState(100);
     const [atsMode, setAtsMode] = React.useState(false);
     const [isSaving, setIsSaving] = React.useState(false);
     const [isExporting, setIsExporting] = React.useState(false);
+    const [userAvatar, setUserAvatar] = React.useState('');
     const resumeRef = React.useRef<HTMLDivElement>(null);
     const [resumeData, setResumeData] = React.useState<ResumeData>({
         name: 'Mariana Costa',
@@ -77,8 +80,6 @@ const EditorPage: React.FC = () => {
             if (cached) {
                 try {
                     setResumeData(JSON.parse(cached));
-                    // Opcionalmente limpa após carregar, ou deixa para ser sobrescrito
-                    // localStorage.removeItem('last_parsed_resume');
                 } catch (e) {
                     console.error('Error parsing cached resume:', e);
                 }
@@ -86,6 +87,11 @@ const EditorPage: React.FC = () => {
 
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
+
+            // Carrega avatar do usuário
+            if (user.user_metadata?.avatar_url) {
+                setUserAvatar(user.user_metadata.avatar_url);
+            }
 
             const { data, error } = await supabase
                 .from('resumes')
@@ -162,7 +168,7 @@ const EditorPage: React.FC = () => {
             setZoom(originalZoom);
         } catch (error) {
             console.error('Error exporting PDF:', error);
-            alert('Erro ao exportar PDF. Tente novamente.');
+            showToast('Erro ao exportar PDF. Tente novamente.', 'error');
         } finally {
             setIsExporting(false);
         }
@@ -219,9 +225,13 @@ const EditorPage: React.FC = () => {
                         </button>
                         <div
                             onClick={() => navigate('/profile')}
-                            className="size-9 rounded-full bg-slate-200 overflow-hidden border border-slate-300 ring-2 ring-transparent hover:ring-primary/20 transition-all cursor-pointer"
+                            className="size-9 rounded-full bg-primary/10 overflow-hidden border border-gray-100 ring-2 ring-transparent hover:ring-primary/20 transition-all cursor-pointer flex items-center justify-center"
                         >
-                            <img alt="User Profile" className="w-full h-full object-cover" src="https://picsum.photos/id/65/32/32" />
+                            {userAvatar ? (
+                                <img alt="User Profile" className="w-full h-full object-cover" src={userAvatar} />
+                            ) : (
+                                <span className="text-xs font-bold text-primary">P</span>
+                            )}
                         </div>
                     </div>
                 </header>

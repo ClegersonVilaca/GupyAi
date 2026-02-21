@@ -2,9 +2,19 @@
 import React from 'react';
 import { Rocket, PlayCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '../../lib/supabaseClient';
 
 const Hero: React.FC = () => {
     const navigate = useNavigate();
+
+    const handleOptimizeClick = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+            navigate('/dashboard');
+        } else {
+            navigate('/login');
+        }
+    };
 
     return (
         <section className="relative overflow-hidden bg-surface-light pt-16 pb-24 lg:pt-32 lg:pb-40">
@@ -25,7 +35,10 @@ const Hero: React.FC = () => {
                         Nossa inteligência artificial reescreve seu currículo para atingir 100% de compatibilidade com o algoritmo de recrutamento das maiores empresas do Brasil.
                     </p>
                     <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
-                        <button onClick={() => navigate('/dashboard')} className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-8 py-4 text-base font-bold text-white shadow-lg shadow-blue-900/20 hover:bg-primary-hover hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200">
+                        <button
+                            onClick={handleOptimizeClick}
+                            className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-8 py-4 text-base font-bold text-white shadow-lg shadow-blue-900/20 hover:bg-primary-hover hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200"
+                        >
                             <Rocket />
                             Otimizar meu Currículo Agora
                         </button>

@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Bell, User, Bot, LogOut } from 'lucide-react';
+import { Bell, User, Bot } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from '../components/shared/Sidebar';
 import JobInputSection from '../components/dashboard/JobInputSection';
@@ -8,6 +8,7 @@ import AnalysisResults from '../components/dashboard/AnalysisResults';
 import { supabase } from '../lib/supabaseClient';
 import { FunctionsError } from '@supabase/supabase-js';
 import UpgradeModal from '../components/shared/UpgradeModal';
+import { useToast } from '../components/shared/Toast';
 
 export interface AnalysisData {
     score: number;
@@ -23,6 +24,7 @@ export interface AnalysisData {
 
 const DashboardPage: React.FC = () => {
     const navigate = useNavigate();
+    const { showToast } = useToast();
     const [file, setFile] = useState<File | null>(null);
     const [jobDescription, setJobDescription] = useState('');
     const [isOptimizing, setIsOptimizing] = useState(false);
@@ -34,6 +36,7 @@ const DashboardPage: React.FC = () => {
     const [userName, setUserName] = useState('Usuário');
     const [user, setUser] = useState<any>(null);
     const [loadingStep, setLoadingStep] = useState(0);
+    const [optimizeError, setOptimizeError] = useState('');
 
     const handleUpgrade = async () => {
         setIsUpgrading(true);
@@ -49,10 +52,12 @@ const DashboardPage: React.FC = () => {
             if (error) throw error;
             if (data?.url) {
                 window.location.href = data.url;
+            } else {
+                throw new Error('URL de checkout não recebida da API.');
             }
         } catch (error: any) {
             console.error('Error initiating upgrade:', error);
-            alert(`Erro ao iniciar upgrade: ${error.message}`);
+            showToast(`Erro ao iniciar upgrade: ${error.message}`, 'error');
         } finally {
             setIsUpgrading(false);
         }
@@ -102,9 +107,10 @@ const DashboardPage: React.FC = () => {
 
     const handleOptimize = async () => {
         if (!jobDescription.trim() || !file) {
-            alert('Por favor, insira a descrição da vaga e carregue seu currículo.');
+            showToast('Por favor, insira a descrição da vaga e carregue seu currículo.', 'info');
             return;
         }
+        setOptimizeError('');
 
         setIsOptimizing(true);
         setShowResults(false);
@@ -210,7 +216,7 @@ const DashboardPage: React.FC = () => {
 
         } catch (error: any) {
             console.error('Error optimizing:', error);
-            alert(`Erro na análise: ${error.message}`);
+            setOptimizeError(error.message || 'Ocorreu um erro desconhecido. Tente novamente.');
         } finally {
             setIsOptimizing(false);
         }
@@ -294,6 +300,13 @@ const DashboardPage: React.FC = () => {
                                 </div>
                             ) : showResults ? (
                                 <AnalysisResults data={analysisData!} />
+                            ) : optimizeError ? (
+                                <div className="bg-white rounded-2xl border border-red-100 h-full flex flex-col items-center justify-center text-center p-12">
+                                    <div className="size-16 bg-red-50 rounded-full flex items-center justify-center text-red-400 mb-4 text-3xl">⚠️</div>
+                                    <h3 className="text-lg font-bold text-red-700 mb-2">Erro na Análise</h3>
+                                    <p className="text-sm text-red-600 max-w-xs">{optimizeError}</p>
+                                    <button onClick={() => setOptimizeError('')} className="mt-6 text-xs font-bold text-primary hover:underline">Tentar novamente</button>
+                                </div>
                             ) : (
                                 <div className="bg-white rounded-2xl border border-dashed border-border-light h-full flex flex-col items-center justify-center text-center p-12">
                                     <div className="size-16 bg-gray-50 rounded-full flex items-center justify-center text-gray-300 mb-4">

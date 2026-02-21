@@ -1,22 +1,28 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { User, Mail, Shield, Camera, Save, ArrowLeft, Bot } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from '../components/shared/Sidebar';
 import { supabase } from '../lib/supabaseClient';
 import UpgradeModal from '../components/shared/UpgradeModal';
+import { useToast } from '../components/shared/Toast';
 
 const ProfilePage: React.FC = () => {
     const navigate = useNavigate();
+    const { showToast } = useToast();
     const [loading, setLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [isUpgrading, setIsUpgrading] = useState(false);
     const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
     const [user, setUser] = useState<any>(null);
+    const [showPasswordModal, setShowPasswordModal] = useState(false);
+    const [newPassword, setNewPassword] = useState('');
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
     const [profile, setProfile] = useState({
         full_name: '',
         email: '',
-        avatar_url: 'https://picsum.photos/id/65/200/200',
+        avatar_url: '',
         is_pro_user: false
     });
 
@@ -34,7 +40,7 @@ const ProfilePage: React.FC = () => {
                 setProfile({
                     full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || '',
                     email: user.email || '',
-                    avatar_url: user.user_metadata?.avatar_url || 'https://picsum.photos/id/65/200/200',
+                    avatar_url: user.user_metadata?.avatar_url || '',
                     is_pro_user: profileData?.is_pro_user || false
                 });
             }
@@ -62,7 +68,7 @@ const ProfilePage: React.FC = () => {
             }
         } catch (error: any) {
             console.error('Error initiating upgrade:', error);
-            alert(`Erro ao iniciar upgrade: ${error.message}`);
+            showToast(`Erro ao iniciar upgrade: ${error.message}`, 'error');
         } finally {
             setIsUpgrading(false);
         }
@@ -94,42 +100,41 @@ const ProfilePage: React.FC = () => {
                 console.warn('Profiles table sync failed, but metadata is updated:', e);
             }
 
-            alert('Perfil salvo com sucesso!');
+            showToast('Perfil salvo com sucesso!', 'success');
         } catch (error: any) {
             console.error('Error updating profile:', error);
-            alert(`Erro ao salvar perfil: ${error.message}`);
+            showToast(`Erro ao salvar perfil: ${error.message}`, 'error');
         } finally {
             setIsSaving(false);
         }
     };
 
     const handleUpdatePassword = async () => {
-        const newPassword = prompt('Digite sua nova senha:');
         if (!newPassword || newPassword.length < 6) {
-            alert('A senha deve ter pelo menos 6 caracteres.');
+            showToast('A senha deve ter pelo menos 6 caracteres.', 'error');
             return;
         }
-
         const { error } = await supabase.auth.updateUser({ password: newPassword });
         if (error) {
-            alert(`Erro ao alterar senha: ${error.message}`);
+            showToast(`Erro ao alterar senha: ${error.message}`, 'error');
         } else {
-            alert('Senha alterada com sucesso!');
+            showToast('Senha alterada com sucesso!', 'success');
+            setShowPasswordModal(false);
+            setNewPassword('');
         }
     };
 
-    const handleDeleteAccount = async () => {
-        const confirmDelete = confirm('Tem certeza que deseja excluir sua conta? Esta ação é irreversível.');
-        if (!confirmDelete) return;
-
-        alert('Para sua segurança, a exclusão de conta deve ser solicitada via suporte ou implementada através de uma Edge Function administrativa. Sua solicitação foi registrada.');
-    };
-
-    const handleAvatarUpload = () => {
-        const url = prompt('Cole aqui a URL da sua imagem de perfil:', profile.avatar_url);
-        if (url) {
-            setProfile({ ...profile, avatar_url: url });
-        }
+    const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        // Gera um preview local enquanto sobe
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            if (ev.target?.result) {
+                setProfile(prev => ({ ...prev, avatar_url: ev.target!.result as string }));
+            }
+        };
+        reader.readAsDataURL(file);
     };
 
     if (loading) {
@@ -139,6 +144,8 @@ const ProfilePage: React.FC = () => {
             </div>
         );
     }
+
+    const initials = profile.full_name?.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase() || '?';
 
     return (
         <div className="bg-background-light text-text-main h-screen flex overflow-hidden font-sans">
@@ -176,15 +183,26 @@ const ProfilePage: React.FC = () => {
                         {/* Profile Hero */}
                         <div className="bg-white rounded-3xl p-8 border border-border-light shadow-sm flex flex-col md:flex-row items-center gap-8">
                             <div className="relative group">
-                                <div className="size-32 rounded-full overflow-hidden border-4 border-white shadow-xl ring-2 ring-gray-100 group-hover:ring-primary/20 transition-all">
-                                    <img src={profile.avatar_url} alt="Profile" className="w-full h-full object-cover" />
+                                <div className="size-32 rounded-full overflow-hidden border-4 border-white shadow-xl ring-2 ring-gray-100 group-hover:ring-primary/20 transition-all bg-primary/10 flex items-center justify-center">
+                                    {profile.avatar_url ? (
+                                        <img src={profile.avatar_url} alt="Profile" className="w-full h-full object-cover" />
+                                    ) : (
+                                        <span className="text-3xl font-black text-primary">{initials}</span>
+                                    )}
                                 </div>
                                 <button
-                                    onClick={handleAvatarUpload}
+                                    onClick={() => fileInputRef.current?.click()}
                                     className="absolute bottom-1 right-1 bg-primary text-white p-2 rounded-full shadow-lg hover:scale-110 transition-transform"
                                 >
                                     <Camera size={16} />
                                 </button>
+                                <input
+                                    ref={fileInputRef}
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    onChange={handleAvatarUpload}
+                                />
                             </div>
                             <div className="text-center md:text-left space-y-2">
                                 <h2 className="text-3xl font-black text-text-main">{profile.full_name || 'Seu Nome'}</h2>
@@ -235,16 +253,6 @@ const ProfilePage: React.FC = () => {
                                             className="w-full px-4 py-3 rounded-xl border border-border-light bg-gray-50 text-text-muted cursor-not-allowed font-medium"
                                         />
                                     </div>
-                                    <div className="space-y-1">
-                                        <label className="text-xs font-bold text-text-muted uppercase tracking-wider">URL do Avatar</label>
-                                        <input
-                                            type="text"
-                                            value={profile.avatar_url}
-                                            onChange={(e) => setProfile({ ...profile, avatar_url: e.target.value })}
-                                            className="w-full px-4 py-3 rounded-xl border border-border-light focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-medium"
-                                            placeholder="https://exemplo.com/foto.jpg"
-                                        />
-                                    </div>
                                 </div>
                             </div>
 
@@ -261,7 +269,7 @@ const ProfilePage: React.FC = () => {
                                             </div>
                                             <div>
                                                 <p className="text-sm font-bold">GupyAI Pro</p>
-                                                <p className="text-[10px] text-text-muted font-bold uppercase">Assinatura Anual</p>
+                                                <p className="text-[10px] text-text-muted font-bold uppercase">Assinatura Mensal</p>
                                             </div>
                                         </div>
                                         {!profile.is_pro_user ? (
@@ -272,21 +280,59 @@ const ProfilePage: React.FC = () => {
                                                 Assinar
                                             </span>
                                         ) : (
-                                            <span className="text-xs font-bold text-text-muted">Ativa</span>
+                                            <span className="text-xs font-bold text-green-600">✔ Ativa</span>
                                         )}
                                     </div>
+
+                                    {/* Botão Alterar Senha */}
                                     <button
-                                        onClick={handleUpdatePassword}
+                                        onClick={() => setShowPasswordModal(true)}
                                         className="w-full py-3 px-4 rounded-xl border border-border-light font-bold text-sm hover:bg-gray-50 transition-all text-text-main"
                                     >
                                         Alterar Senha
                                     </button>
+
+                                    {/* Modal Alterar Senha */}
+                                    {showPasswordModal && (
+                                        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                                            <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl space-y-4">
+                                                <h4 className="font-bold text-text-main text-lg">Nova Senha</h4>
+                                                <input
+                                                    type="password"
+                                                    value={newPassword}
+                                                    onChange={(e) => setNewPassword(e.target.value)}
+                                                    placeholder="Mínimo 6 caracteres"
+                                                    className="w-full px-4 py-3 rounded-xl border border-border-light focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                                                />
+                                                <div className="flex gap-3">
+                                                    <button onClick={() => { setShowPasswordModal(false); setNewPassword(''); }} className="flex-1 py-2.5 rounded-xl border border-border-light text-sm font-bold text-text-muted hover:bg-gray-50 transition-all">Cancelar</button>
+                                                    <button onClick={handleUpdatePassword} className="flex-1 py-2.5 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary-hover transition-all">Confirmar</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Botão Excluir Conta */}
                                     <button
-                                        onClick={handleDeleteAccount}
+                                        onClick={() => setShowDeleteConfirm(true)}
                                         className="w-full py-3 px-4 rounded-xl border border-red-100 font-bold text-sm text-accent-danger hover:bg-red-50 transition-all"
                                     >
                                         Excluir Minha Conta
                                     </button>
+
+                                    {/* Modal Confirmar Exclusão */}
+                                    {showDeleteConfirm && (
+                                        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                                            <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl space-y-4">
+                                                <h4 className="font-bold text-red-700 text-lg">⚠️ Excluir Conta</h4>
+                                                <p className="text-sm text-text-muted">Esta ação é irreversível. Todos seus dados serão perdidos.</p>
+                                                <div className="flex gap-3">
+                                                    <button onClick={() => setShowDeleteConfirm(false)} className="flex-1 py-2.5 rounded-xl border border-border-light text-sm font-bold text-text-muted hover:bg-gray-50 transition-all">Cancelar</button>
+                                                    <button onClick={() => { setShowDeleteConfirm(false); showToast('Solicitação registrada. Entre em contato com o suporte.', 'info'); }} className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-bold hover:bg-red-600 transition-all">Confirmar</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
