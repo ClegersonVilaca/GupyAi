@@ -22,7 +22,8 @@ const Pricing: React.FC = () => {
             const { data, error } = await supabase.functions.invoke('create-checkout-abacate', {
                 body: {
                     user_email: user.email,
-                    user_name: user.user_metadata?.full_name || user.email?.split('@')[0]
+                    user_name: user.user_metadata?.full_name || user.email?.split('@')[0],
+                    baseUrl: window.location.origin
                 }
             });
 

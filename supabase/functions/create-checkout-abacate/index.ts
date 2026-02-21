@@ -14,7 +14,8 @@ Deno.serve(async (req) => {
     }
 
     try {
-        const { user_email, user_name } = await req.json()
+        const { user_email, user_name, baseUrl } = await req.json()
+        const appUrl = baseUrl || "http://localhost:3000"
 
         if (!ABACATE_PAY_KEY) {
             throw new Error('ABACATE_PAY_KEY não configurada no Supabase.')
@@ -32,8 +33,8 @@ Deno.serve(async (req) => {
                     price: 2990 // R$ 29,90 em centavos
                 }
             ],
-            returnUrl: "http://localhost:3000/profile?success=true",
-            completionUrl: "http://localhost:3000/profile?payment=completed",
+            returnUrl: `${appUrl}/profile?success=true`,
+            completionUrl: `${appUrl}/profile?payment=completed`,
             customer: {
                 name: user_name,
                 email: user_email

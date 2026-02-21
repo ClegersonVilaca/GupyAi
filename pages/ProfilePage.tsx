@@ -49,7 +49,8 @@ const ProfilePage: React.FC = () => {
             const { data, error } = await supabase.functions.invoke('create-checkout-abacate', {
                 body: {
                     user_email: profile.email,
-                    user_name: profile.full_name
+                    user_name: profile.full_name,
+                    baseUrl: window.location.origin
                 }
             });
 
